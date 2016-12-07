@@ -1,18 +1,69 @@
+'use strict';
+
+const path = require('path');
 const test = require('ava');
 const pify = require('pify');
 const fsP = pify(require('fs'));
+const eslint = require('eslint');
 const lint = require('..');
 
-test('lintText', async t => {
-  const fileName = `${__dirname}/fixtures/foo.js`;
+test('Validate config', t => {
+  const cli = new eslint.CLIEngine({
+    useEslintrc: false,
+    configFile: path.resolve(__dirname, '../config/index.js')
+  });
+
+  const code = 'let foo = 1;\nconst bar = function () {};\nbar(foo);\n';
+
+  t.is(cli.executeOnText(code).errorCount, 0);
+});
+
+test('tapplint.lintText', async t => {
+  const fileName = `${__dirname}/fixtures/index.js`;
   const buffer = await fsP.readFile(fileName);
   const report = await lint.lintText(buffer, fileName);
 
   t.is(report.results.length, 1);
 });
 
-test('lintFiles', async t => {
+test('tapplint.lintFiles', async t => {
   const report = await lint.lintFiles([`${__dirname}/fixtures/*.js`], {});
 
-  t.is(report.results.length, 2);
+  t.is(report.results.length, 8);
+});
+
+test('Possible Errors', async t => {
+  const report = await lint.lintFiles([`${__dirname}/fixtures/possible-errors.js`], {});
+
+  t.is(report.results[0].messages.length, 0);
+});
+
+test('Best Practices', async t => {
+  const report = await lint.lintFiles([`${__dirname}/fixtures/best-practices.js`], {});
+
+  t.is(report.results[0].messages.length, 0);
+});
+
+test('Strict Mode', async t => {
+  const report = await lint.lintFiles([`${__dirname}/fixtures/strict-mode.js`], {});
+
+  t.is(report.results[0].messages.length, 0);
+});
+
+test('Variables', async t => {
+  const report = await lint.lintFiles([`${__dirname}/fixtures/variables.js`], {});
+
+  t.is(report.results[0].messages.length, 0);
+});
+
+test('Node.js and CommonJS', async t => {
+  const report = await lint.lintFiles([`${__dirname}/fixtures/nodejs-and-commonjs.js`], {});
+
+  t.is(report.results[0].messages.length, 0);
+});
+
+test('Stylistic Issues', async t => {
+  const report = await lint.lintFiles([`${__dirname}/fixtures/stylistic-issues.js`], {});
+
+  t.is(report.results[0].messages.length, 0);
 });
